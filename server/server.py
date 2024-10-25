@@ -10,6 +10,7 @@ def get_video_feed():
     try:
         # Send request to ESP32 and stream response back
         with requests.get(ESP32_IP, stream=True) as response:
+            print(response.headers)
             if response.status_code == 200:
                 # Stream the image content back as a proper JPEG response
                 return Response(stream_with_context(response.iter_content(chunk_size=1024)),
