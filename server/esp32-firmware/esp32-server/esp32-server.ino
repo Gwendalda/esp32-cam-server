@@ -103,39 +103,51 @@ bool startCamera() {
     }
     return true;
 }
-
 void startCameraServer() {
     server.on("/", HTTP_GET, []() {
-        // Capture a frame from the camera
-        camera_fb_t * fb = esp_camera_fb_get();
-
-        if (!fb) {
-            Serial.println("Camera capture failed");
-            server.send(500, "text/plain", "Camera capture failed");
+        WiFiClient client = server.client();
+        if (!client.connected()) {
             return;
         }
 
-        // Ensure no duplicate headers are sent
-        server.sendHeader("Content-Type", "image/jpeg");
+        // Send initial HTTP headers for MJPEG stream
+        client.println("HTTP/1.1 200 OK");
+        client.println("Content-Type: multipart/x-mixed-replace; boundary=frame");
+        client.println("Connection: close");
+        client.println();
 
-        // Calculate and set the correct content length
-        server.sendHeader("Content-Length", String(fb->len));
+        // Start the streaming loop
+        while (client.connected()) {
+            // Capture a frame
+            camera_fb_t * fb = esp_camera_fb_get();
+            if (!fb) {
+                Serial.println("Camera capture failed");
+                break;
+            }
 
-        // Send 200 OK status without ending the response (so we can send raw data)
-        server.send(200);
+            // Send the frame as part of the MJPEG stream
+            client.printf("--frame\r\n");
+            client.printf("Content-Type: image/jpeg\r\n");
+            client.printf("Content-Length: %d\r\n\r\n", fb->len);
+            client.write(fb->buf, fb->len);
+            client.printf("\r\n");
 
-        // Send the image data directly
-        WiFiClient client = server.client();  // Get the client from the server
-        if (client.connected()) {
-            client.write(fb->buf, fb->len);  // Send the raw JPEG image data
+            esp_camera_fb_return(fb);  // Free the frame buffer
+
+            // Small delay to control the frame rate (adjust to control FPS)
+            delay(50);  // ~20 frames per second (1000ms / 50ms = 20fps)
         }
 
-        esp_camera_fb_return(fb);  // Free the frame buffer to avoid memory leaks
+        // Close connection after streaming ends
+        client.stop();
+        Serial.println("Client disconnected from MJPEG stream");
     });
 
     server.begin();
-    Serial.println("HTTP server started");
+    Serial.println("HTTP server started for MJPEG streaming");
 }
+
+
 
 
 

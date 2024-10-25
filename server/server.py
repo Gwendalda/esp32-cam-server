@@ -13,7 +13,7 @@ def get_video_feed():
             if response.status_code == 200:
                 # Stream the image content back as a proper JPEG response
                 return Response(stream_with_context(response.iter_content(chunk_size=1024)),
-                                content_type='image/jpeg')
+                                content_type='multipart/x-mixed-replace; boundary=frame')
             else:
                 return f"Failed to connect to ESP32, status code: {response.status_code}", 500
     except requests.exceptions.RequestException as e:
