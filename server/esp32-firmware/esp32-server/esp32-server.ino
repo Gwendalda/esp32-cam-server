@@ -106,12 +106,28 @@ bool startCamera() {
 
 void startCameraServer() {
     server.on("/", HTTP_GET, []() {
-        startStreaming();  // Start streaming when a request is made
+        WiFiClient client = server.client();  // Get the client from the web server
+        camera_fb_t * fb = esp_camera_fb_get();  // Capture a frame
+
+        if (!fb) {
+            Serial.println("Camera capture failed");
+            server.send(500, "text/plain", "Camera capture failed");
+            return;
+        }
+
+        // Send a proper HTTP response with content-type for JPEG
+        server.sendHeader("Content-Type", "image/jpeg");
+        server.sendHeader("Content-Length", String(fb->len));
+        server.send(200);
+
+        client.write(fb->buf, fb->len);  // Send the raw JPEG image to the client
+        esp_camera_fb_return(fb);  // Return the frame buffer to free memory
     });
 
     server.begin();
     Serial.println("HTTP server started");
 }
+
 
 void startStreaming() {
     if (!isStreaming) {
