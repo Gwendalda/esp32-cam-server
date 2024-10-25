@@ -1,4 +1,3 @@
-
 from flask import Flask, Response, stream_with_context
 import requests
 
@@ -14,11 +13,12 @@ def get_video_feed():
             if response.status_code == 200:
                 # Stream the image content back as a proper JPEG response
                 return Response(stream_with_context(response.iter_content(chunk_size=1024)),
-                                content_type='multipart/x-mixed-replace; boundary=frame')
+                                content_type='image/jpeg')
             else:
                 return f"Failed to connect to ESP32, status code: {response.status_code}", 500
     except requests.exceptions.RequestException as e:
         return f"Error: {str(e)}", 500
+
 
 if __name__ == '__main__':
     app.run(host='10.0.0.195', port=5010)
