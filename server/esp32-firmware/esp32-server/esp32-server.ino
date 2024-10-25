@@ -147,10 +147,6 @@ void startCameraServer() {
     Serial.println("HTTP server started for MJPEG streaming");
 }
 
-
-
-
-
 void startStreaming() {
     if (!isStreaming) {
         Serial.println("Starting camera stream for 30 seconds");
